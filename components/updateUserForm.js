@@ -2,34 +2,43 @@ import { useReducer } from 'react';
 import { BiBrush } from 'react-icons/bi';
 import Success from './success';
 import Bug from './bug';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { getUser, getUsers, updateUser } from '../lib/helper';
 
-const formReducer = (state, event) => {
-	return {
-		...state,
-		[event.target.name]: event.target.value,
-	};
-};
 
-export default function UpdateUserForm() {
-	const [formData, setFormData] = useReducer(formReducer, {});
-
-	const handleSubmit = e => {
-		e.preventDefault();
-		if (Object.keys(formData).length == 0) {
-			return console.log('Don`t have Form Data!');
+export default function UpdateUserForm({ formId, formData, setFormData }) {
+	
+	const queryClient = useQueryClient()
+	const {isLoading, isError, data, error} = useQuery(['users', formId], () => getUser(formId))
+	const UpdateMutation = useMutation((newData) => updateUser(formId, newData), {
+		onSuccess: async (data) => {
+			//queryClient.setQueriesData('users', (old) => [data])
+			queryClient.prefetchQuery('users', getUsers)
 		}
+	})
 
-		console.log(formData);
+	if (isLoading) return <div>Loading...!</div>;
+	if (isError) return <div>Error</div>;
+
+	const {name, avatar, salary, date ,email, status} = data;
+	const [firstname, lastname] = name ? name.split(' ') : formData;
+
+	const handleSubmit = async(e) => {
+		e.preventDefault();
+		let userName = `${formData.firstname ?? firstname} ${formData.lastname ?? lastname}`;
+		let updated = Object.assign({}, data, formData, {name: userName})
+		console.log(updated)
+		await UpdateMutation.mutate(updated)
 	};
 
-	if (Object.keys(formData).length > 0)
-		return <Success message={'Data Added'}></Success>;
+	
 
 	return (
 		<form className='grid lg:grid-cols-2 w-4/6 gap-4 ' onSubmit={handleSubmit}>
 			<div className='input-type'>
 				<input
 					onChange={setFormData}
+					defaultValue={firstname}
 					type='text'
 					name='firstname'
 					className='border w-full px-5 py-3 focus:outline-none rounded-md'
@@ -39,6 +48,7 @@ export default function UpdateUserForm() {
 			<div className='input-type'>
 				<input
 					onChange={setFormData}
+					defaultValue={lastname}
 					type='text'
 					name='lastname'
 					className='border w-full px-5 py-3 focus:outline-none rounded-md'
@@ -48,6 +58,7 @@ export default function UpdateUserForm() {
 			<div className='input-type'>
 				<input
 					onChange={setFormData}
+					defaultValue={email}
 					type='text'
 					name='email'
 					className='border w-full px-5 py-3 focus:outline-none rounded-md'
@@ -57,6 +68,7 @@ export default function UpdateUserForm() {
 			<div className='input-type'>
 				<input
 					onChange={setFormData}
+					defaultValue={salary}
 					type='text'
 					name='salary'
 					className='border w-full px-5 py-3 focus:outline-none rounded-md'
@@ -66,6 +78,7 @@ export default function UpdateUserForm() {
 			<div className='input-type'>
 				<input
 					onChange={setFormData}
+					defaultValue={date}
 					type='date'
 					name='date'
 					className='border px-5 py-3 focus:outline-none rounded-md '
@@ -76,6 +89,7 @@ export default function UpdateUserForm() {
 				<div className='form-check'>
 					<input
 						onChange={setFormData}
+						defaultChecked={status == 'Active'}
 						type='radio'
 						name='status'
 						value='Active'
@@ -89,6 +103,7 @@ export default function UpdateUserForm() {
 				<div className='form-check'>
 					<input
 						onChange={setFormData}
+						defaultChecked={status !== 'Active'}
 						type='radio'
 						name='status'
 						value='Inactive'
